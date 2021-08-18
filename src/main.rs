@@ -1,8 +1,5 @@
-// Key, values
-// data:
-// key
-// values
-// is_occupied
+use std::convert::TryInto;
+use std::mem;
 
 const MAP_FULL: i16 = -2;
 const MAP_MISSING: i16 = -3;
@@ -15,7 +12,7 @@ type MapT<T> = HashMapMap<T>;
 #[repr(C)]
 #[derive(Default, Clone)]
 struct HashMapElement<T> {
-    key: i32,
+    key: usize,
     in_use: i32,
     data: T,
 }
@@ -57,14 +54,11 @@ fn hashmap_hash_int<T>(m: &HashMapMap<T>, mut key: usize) -> usize {
     key % m.table_size
 }
 
-use std::convert::TryInto;
-use std::mem;
-
-fn hashmap_hash<T>(m: &MapT<T>, key: i32) -> i16 {
+fn hashmap_hash<T>(m: &MapT<T>, key: usize) -> i16 {
     if m.size == m.table_size.try_into().unwrap() {
         return MAP_FULL;
     }
-    let mut curr: usize = hashmap_hash_int(&m, key.try_into().unwrap());
+    let mut curr: usize = hashmap_hash_int(&m, key);
     for _ in 0..m.table_size {
         if m.data[curr].in_use == 0 {
             return curr as i16;
@@ -101,7 +95,7 @@ where
     return MAP_OK;
 }
 
-fn hashmap_put<T>(m: &mut MapT<T>, key: i32, value: T) -> i16
+fn hashmap_put<T>(m: &mut MapT<T>, key: usize, value: T) -> i16
 where
     T: Clone + Default + Copy,
 {
@@ -125,7 +119,7 @@ where
 {
     let mut curr = hashmap_hash_int(&m, key);
     for _ in 0..m.table_size {
-        if m.data[curr].key == key as i32 && m.data[curr].in_use == 1 {
+        if m.data[curr].key == key && m.data[curr].in_use == 1 {
             return Some(m.data[curr].data);
         }
         curr = (curr + 1) % m.table_size;
@@ -159,7 +153,7 @@ where
 {
     let mut curr = hashmap_hash_int(m, key);
     for _ in 0..m.table_size {
-        if m.data[curr].key == key as i32 && m.data[curr].in_use == 1 {
+        if m.data[curr].key == key && m.data[curr].in_use == 1 {
             /* Blank out the fields */
             m.data[curr].in_use = 0;
             m.data[curr].data = T::default();

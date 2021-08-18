@@ -1,4 +1,3 @@
-use std::convert::TryInto;
 use std::mem;
 
 const MAP_FULL: i16 = -2;
@@ -20,7 +19,7 @@ struct HashMapElement<T> {
 
 struct HashMapMap<T> {
     table_size: usize,
-    size: i32,
+    size: usize,
     data: Vec<HashMapElement<T>>,
 }
 
@@ -53,7 +52,7 @@ fn hashmap_hash_int<T>(m: &HashMapMap<T>, mut key: usize) -> usize {
 }
 
 fn hashmap_hash<T>(m: &MapT<T>, key: usize) -> i16 {
-    if m.size == m.table_size.try_into().unwrap() {
+    if m.size == m.table_size {
         return MAP_FULL;
     }
     let mut curr: usize = hashmap_hash_int(m, key);
@@ -166,7 +165,7 @@ where
 
     MAP_MISSING
 }
-fn hashmap_length<T>(m: &MapT<T>) -> i32 {
+fn hashmap_length<T>(m: &MapT<T>) -> usize {
     m.size
 }
 fn main() {

@@ -9,7 +9,7 @@ const INIT_CAP: usize = 1024;
 
 type MapT<T> = HashMapMap<T>;
 
-#[repr(C)]
+
 #[derive(Default, Clone)]
 struct HashMapElement<T> {
     key: usize,
@@ -17,7 +17,7 @@ struct HashMapElement<T> {
     data: T,
 }
 
-#[repr(C)]
+
 struct HashMapMap<T> {
     table_size: usize,
     size: i32,
@@ -28,13 +28,11 @@ fn hashmap_new<T>() -> MapT<T>
 where
     T: Clone + Default,
 {
-    let m = HashMapMap {
+    HashMapMap {
         table_size: INIT_CAP,
         size: 0,
         data: vec![HashMapElement::<T>::default(); INIT_CAP],
-    };
-
-    m
+    }
 }
 
 fn hashmap_hash_int<T>(m: &HashMapMap<T>, mut key: usize) -> usize {
@@ -58,7 +56,7 @@ fn hashmap_hash<T>(m: &MapT<T>, key: usize) -> i16 {
     if m.size == m.table_size.try_into().unwrap() {
         return MAP_FULL;
     }
-    let mut curr: usize = hashmap_hash_int(&m, key);
+    let mut curr: usize = hashmap_hash_int(m, key);
     for _ in 0..m.table_size {
         if m.data[curr].in_use == 0 {
             return curr as i16;
@@ -67,7 +65,7 @@ fn hashmap_hash<T>(m: &MapT<T>, key: usize) -> i16 {
             return curr as i16;
         }
 
-        curr = curr + 1 % m.table_size
+        curr = (curr + 1) % m.table_size
     }
 
     MAP_FULL
@@ -82,42 +80,43 @@ where
     //let data field of m now point to new default-init'd vector.
     mem::swap(&mut m.data, &mut curr);
     let old_size = m.table_size;
-    m.table_size = 2 * m.table_size;
+    m.table_size *= 2;
     m.size = 0;
 
-    for i in 0..old_size {
-        let status: i16 = hashmap_put(m, curr[i].key, curr[i].data);
+    for i in curr.iter().take(old_size) {
+        let status: i16 = hashmap_put(m, i.key, i.data);
         if status != MAP_OK {
             return status;
         }
     }
 
-    return MAP_OK;
+    MAP_OK
 }
 
 fn hashmap_put<T>(m: &mut MapT<T>, key: usize, value: T) -> i16
 where
     T: Clone + Default + Copy,
 {
-    let mut index = hashmap_hash(&m, key);
+    let mut index = hashmap_hash(m, key);
     while index == MAP_FULL {
         if hashmap_rehash(m) == MAP_OMEM {
             return MAP_OMEM;
         }
         index = hashmap_hash(m, key);
     }
-    m.data[index as usize].data = value.clone();
+    m.data[index as usize].data = value;
     m.data[index as usize].key = key;
     m.data[index as usize].in_use = 1;
     m.size += 1;
-    return MAP_OK;
+
+    MAP_OK
 }
 
 fn hashmap_get<T>(m: &mut MapT<T>, key: usize) -> Option<T>
 where
     T: Clone + Default + Copy,
 {
-    let mut curr = hashmap_hash_int(&m, key);
+    let mut curr = hashmap_hash_int(m, key);
     for _ in 0..m.table_size {
         if m.data[curr].key == key && m.data[curr].in_use == 1 {
             return Some(m.data[curr].data);
